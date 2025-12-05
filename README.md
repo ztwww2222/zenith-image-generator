@@ -1,5 +1,7 @@
 # Z-Image
 
+[中文文档](./README.zh.md)
+
 A modern Text-to-Image generation web application powered by Gitee AI API (z-image-turbo model).
 
 ![Dark Mode UI](https://img.shields.io/badge/UI-Dark%20Mode-1a1a1a)
@@ -50,11 +52,15 @@ z-image/
 
 ## Local Development
 
-### 1. Clone the repository
+### 1. Fork and clone the repository
+
+1. Go to [https://github.com/WuMingDao/zenith-image-generator](https://github.com/WuMingDao/zenith-image-generator)
+2. Click **Fork** button in the top right corner
+3. Clone your forked repository:
 
 ```bash
-git clone https://github.com/your-username/z-image.git
-cd z-image
+git clone https://github.com/YOUR_USERNAME/zenith-image-generator.git
+cd zenith-image-generator
 ```
 
 ### 2. Install dependencies
