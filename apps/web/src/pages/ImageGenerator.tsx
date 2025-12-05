@@ -5,18 +5,22 @@ import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { ImageIcon } from 'lucide-react'
 
 const DEFAULT_PROMPT = "一张虚构的英语电影《回忆之味》（The Taste of Memory）的电影海报。场景设置在一个质朴的19世纪风格厨房里。画面中央，一位红棕色头发、留着小胡子的中年男子（演员阿瑟·彭哈利根饰）站在一张木桌后，他身穿白色衬衫、黑色马甲和米色围裙，正看着一位女士，手中拿着一大块生红肉，下方是一个木制切菜板。在他的右边，一位梳着高髻的黑发女子（演员埃莉诺·万斯饰）倚靠在桌子上，温柔地对他微笑。她穿着浅色衬衫和一条上白下蓝的长裙。桌上除了放有切碎的葱和卷心菜丝的切菜板外，还有一个白色陶瓷盘、新鲜香草，左侧一个木箱上放着一串深色葡萄。背景是一面粗糙的灰白色抹灰墙，墙上挂着一幅风景画。最右边的一个台面上放着一盏复古油灯。海报上有大量的文字信息。左上角是白色的无衬线字体\"ARTISAN FILMS PRESENTS\"，其下方是\"ELEANOR VANCE\"和\"ACADEMY AWARD® WINNER\"。右上角写着\"ARTHUR PENHALIGON\"和\"GOLDEN GLOBE® AWARD WINNER\"。顶部中央是圣丹斯电影节的桂冠标志，下方写着\"SUNDANCE FILM FESTIVAL GRAND JURY PRIZE 2024\"。主标题\"THE TASTE OF MEMORY\"以白色的大号衬线字体醒目地显示在下半部分。标题下方注明了\"A FILM BY Tongyi Interaction Lab\"。底部区域用白色小字列出了完整的演职员名单，包括\"SCREENPLAY BY ANNA REID\"、\"CULINARY DIRECTION BY JAMES CARTER\"以及Artisan Films、Riverstone Pictures和Heritage Media等众多出品公司标志。整体风格是写实主义，采用温暖柔和的灯光方案，营造出一种亲密的氛围。色调以棕色、米色和柔和的绿色等大地色系为主。两位演员的身体都在腰部被截断"
 const DEFAULT_NEGATIVE_PROMPT = "低质量, 丑陋, 畸形, 模糊, 多余的肢体, 错误的文本"
 
 const ASPECT_RATIOS: Record<string, [number, number]> = {
-  "1:1 (1024×1024)": [1024, 1024],
-  "1:1 (512×512)": [512, 512],
-  "4:3 (1152×896)": [1152, 896],
-  "3:4 (768×1024)": [768, 1024],
-  "16:9 (1024×576)": [1024, 576],
-  "9:16 (576×1024)": [576, 1024],
+  "1:1": [1024, 1024],
+  "16:9": [1024, 576],
+  "9:16": [576, 1024],
+  "4:3": [1152, 896],
+  "3:4": [768, 1024],
 }
 
 export default function ImageGenerator() {
@@ -29,6 +33,7 @@ export default function ImageGenerator() {
   const [steps, setSteps] = useState(9)
   const [loading, setLoading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [status, setStatus] = useState('Ready.')
 
   useEffect(() => {
     localStorage.setItem('z-image-api-key', apiKey)
@@ -42,6 +47,10 @@ export default function ImageGenerator() {
     }
   }
 
+  const addStatus = (msg: string) => {
+    setStatus(prev => prev + '\n' + msg)
+  }
+
   const handleGenerate = async () => {
     if (!apiKey) {
       toast.error('Please enter your API Key')
@@ -50,8 +59,10 @@ export default function ImageGenerator() {
 
     setLoading(true)
     setImageUrl(null)
+    setStatus('Initializing client...')
 
     try {
+      addStatus('Sending request to API...')
       const res = await fetch('http://localhost:8787/generate', {
         method: 'POST',
         headers: {
@@ -74,6 +85,8 @@ export default function ImageGenerator() {
         throw new Error(data.error || 'Failed to generate image')
       }
 
+      addStatus('Image generated successfully!')
+
       if (data.url) {
         setImageUrl(data.url)
       } else if (data.b64_json) {
@@ -82,125 +95,175 @@ export default function ImageGenerator() {
 
       toast.success('Image generated!')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred')
+      const msg = err instanceof Error ? err.message : 'An error occurred'
+      addStatus(`Error: ${msg}`)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">Z-Image Generator</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="apiKey">API Key</Label>
-            <Input
-              id="apiKey"
-              type="password"
-              placeholder="Enter your Gitee AI API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="prompt">Prompt</Label>
-            <Textarea
-              id="prompt"
-              rows={5}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="negativePrompt">Negative Prompt</Label>
-            <Textarea
-              id="negativePrompt"
-              rows={2}
-              value={negativePrompt}
-              onChange={(e) => setNegativePrompt(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="model">Model</Label>
-              <Input
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Aspect Ratio</Label>
-              <select
-                className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                onChange={(e) => handleAspectRatioChange(e.target.value)}
-                defaultValue="1:1 (1024×1024)"
-              >
-                {Object.keys(ASPECT_RATIOS).map((ratio) => (
-                  <option key={ratio} value={ratio}>{ratio}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <Label>Inference Steps: {steps}</Label>
-            <Slider
-              value={[steps]}
-              onValueChange={(v) => setSteps(v[0])}
-              min={1}
-              max={50}
-              step={1}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Width: {width}</Label>
-              <Slider
-                value={[width]}
-                onValueChange={(v) => setWidth(v[0])}
-                min={512}
-                max={2048}
-                step={64}
-              />
-            </div>
-            <div>
-              <Label>Height: {height}</Label>
-              <Slider
-                value={[height]}
-                onValueChange={(v) => setHeight(v[0])}
-                min={512}
-                max={2048}
-                step={64}
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleGenerate} disabled={loading} className="w-full">
-            {loading ? 'Generating...' : 'Generate Image'}
-          </Button>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-white">Text-to-Image Generation UI</h1>
+          <p className="text-zinc-400 mt-1">Enter your API key and a prompt to generate an image using the Gitee AI API.</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Generated Image</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {imageUrl ? (
-              <img src={imageUrl} alt="Generated" className="w-full rounded-md" />
-            ) : (
-              <div className="aspect-square bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                {loading ? 'Generating...' : 'Image will appear here'}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Controls */}
+          <div className="lg:col-span-2">
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardContent className="p-6 space-y-5">
+                <div>
+                  <Label htmlFor="apiKey" className="text-zinc-300">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="Enter your Gitee AI API Key here..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="prompt" className="text-zinc-300">Prompt</Label>
+                  <Textarea
+                    id="prompt"
+                    rows={5}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="negativePrompt" className="text-zinc-300">Negative Prompt</Label>
+                  <Textarea
+                    id="negativePrompt"
+                    rows={2}
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                    className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                  />
+                </div>
+
+                <Separator className="bg-zinc-800" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="model" className="text-zinc-300">Model</Label>
+                    <Input
+                      id="model"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      Inference Steps <Badge variant="secondary" className="bg-zinc-700 text-zinc-200">{steps}</Badge>
+                    </Label>
+                    <Slider
+                      value={[steps]}
+                      onValueChange={(v) => setSteps(v[0])}
+                      min={1}
+                      max={50}
+                      step={1}
+                      className="mt-3"
+                    />
+                  </div>
+                </div>
+
+                <Separator className="bg-zinc-800" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-zinc-300">Aspect Ratio</Label>
+                    <Select onValueChange={handleAspectRatioChange} defaultValue="1:1">
+                      <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {Object.keys(ASPECT_RATIOS).map((ratio) => (
+                          <SelectItem key={ratio} value={ratio} className="text-zinc-100 focus:bg-zinc-700">
+                            {ratio}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      Width <Badge variant="secondary" className="bg-zinc-700 text-zinc-200">{width}</Badge>
+                    </Label>
+                    <Slider
+                      value={[width]}
+                      onValueChange={(v) => setWidth(v[0])}
+                      min={512}
+                      max={2048}
+                      step={64}
+                      className="mt-3"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      Height <Badge variant="secondary" className="bg-zinc-700 text-zinc-200">{height}</Badge>
+                    </Label>
+                    <Slider
+                      value={[height]}
+                      onValueChange={(v) => setHeight(v[0])}
+                      min={512}
+                      max={2048}
+                      step={64}
+                      className="mt-3"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleGenerate}
+                  disabled={loading}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold h-11"
+                >
+                  {loading ? 'Generating...' : 'Generate Image'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Output */}
+          <div className="lg:col-span-1 space-y-4">
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-zinc-200 text-lg">Generated Image</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Generated" className="w-full rounded-md" />
+                ) : (
+                  <div className="aspect-square bg-zinc-800 rounded-md flex flex-col items-center justify-center text-zinc-500 border border-zinc-700">
+                    <ImageIcon className="w-12 h-12 mb-2" />
+                    <span>{loading ? 'Generating...' : 'No image yet'}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-zinc-200 text-lg">Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-32 w-full rounded-md border border-zinc-700 bg-zinc-800 p-3">
+                  <pre className="text-sm text-zinc-400 whitespace-pre-wrap font-mono">{status}</pre>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
